@@ -75,6 +75,7 @@ class FollowLine(State):
         self.green_start_pub = rospy.Publisher(
             'green_start', Bool, queue_size=1)
         self.find_green = False
+        self.red_object_count = 0
         self.reset()
 
     def reset(self):
@@ -101,6 +102,7 @@ class FollowLine(State):
         self.reset()
         start_time = None
         self.image = None
+        self.red_object_count = 0
 
         while not rospy.is_shutdown() and START:
             self.image = IMAGE
@@ -168,13 +170,31 @@ class FollowLine(State):
                     if self.phase=="2.2":
                         thresh = 1000
                     
-                    if thresh < self.object_area < red_area_threshold:  # valid small red object in front
+                    if self.object_area > thresh:  # valid small red object in front
+                        self.red_object_count += 1
+
                         if self.phase == "4.1":
                             self.temporary_stop = True  # temporary stop regardless of the length of red object in phase 4.1 (because the long red object sometimes get misclassified as a small red one because of the turn)
-                        else:
-                            self.start_timeout = True
-                    elif self.object_area > red_area_threshold:  # valid large red object in front
-                        self.temporary_stop = True
+                        elif self.phase == "1.0":
+                            if self.red_object_count == 1:
+                                self.start_timeout = True
+                        elif self.phase == "2.0":
+                            if self.red_object_count == 1:
+                                self.temporary_stop = True
+                            elif self.red_object_count == 2:
+                                self.start_timeout = True
+                        elif self.phase == "2.2":
+                            if self.red_object_count == 1:
+                                self.start_timeout = True
+                        elif self.phase == "4.1":
+                            if self.red_object_count == 1:
+                                self.temporary_stop = True
+                        elif self.phase == "3.1":
+                            if self.red_object_count == 1:
+                                self.temporary_stop = True
+                            elif self.red_object_count >= 2:
+                                self.start_timeout = True
+                    
                     self.object_area = 0
 
             cv2.imshow("window", mask_red)
@@ -397,7 +417,8 @@ class Turn(State):
 
         direction = turn_direction
 
-        if 2 * np.pi - angles_lib.normalize_angle_positive(goal) < angles_lib.normalize_angle_positive(goal) or self.angle == 0:
+        # if 2 * np.pi - angles_lib.normalize_angle_positive(goal) < angles_lib.normalize_angle_positive(goal) or self.angle == 0:
+        if angles_lib.normalize_angle(self.tb_rot[2]) - goal > 0:
             direction = turn_direction * -1
 
         while not rospy.is_shutdown():
@@ -1038,7 +1059,7 @@ if __name__ == "__main__":
         # # Phase 1 sub state
         phase1_sm = StateMachine(outcomes=['success', 'failure', 'exit'])
         with phase1_sm:
-            StateMachine.add("Finding1", FollowLine(), transitions={
+            StateMachine.add("Finding1", FollowLine("1.0"), transitions={
                              "see_red": "Turn11", "failure": "failure", "exit": "exit", "see_nothing": "failure", "see_long_red": "failure"})
             StateMachine.add("Turn11", Turn(90), transitions={
                              "success": "Count1", "failure": "failure", "exit": "exit"})  # turn left 90 degrees
