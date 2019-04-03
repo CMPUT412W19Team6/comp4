@@ -26,8 +26,8 @@ def image_callback(msg):
         mask = cv2.inRange(hsv, lower_red, upper_red)
 
         h, w, d = image.shape
-        search_top = 1*h/6
-        search_bot = 3*h/4
+        search_top = 1*h/3
+        search_bot = 5*h/6
 
         mask[0:search_top, 0:w] = 0
         mask[search_bot:h, 0:w] = 0
@@ -104,7 +104,7 @@ def ready_callback(msg):
 rospy.init_node("recong5")
 bridge = cv_bridge.CvBridge()
 image_sub = rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
-start_sub = rospy.Subscriber('/recong5_start', Bool, ready_callback)
+start_sub = rospy.Subscriber('/start5', Bool, ready_callback)
 shape_pub = rospy.Publisher("/shape5", String, queue_size=10)
 start_time = rospy.Time.now()
 end_time = rospy.Time.now() + rospy.Duration(6)

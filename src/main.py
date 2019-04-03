@@ -102,7 +102,7 @@ class FollowLine(State):
         self.reset()
         start_time = None
         self.image = None
-        self.red_object_count = 0
+        # self.red_object_count = 0
 
         while not rospy.is_shutdown() and START:
             self.image = IMAGE
@@ -196,7 +196,7 @@ class FollowLine(State):
                                 self.start_timeout = True
                     
                     self.object_area = 0
-
+                    
             cv2.imshow("window", mask_red)
             cv2.waitKey(3)
 
@@ -418,7 +418,7 @@ class Turn(State):
         direction = turn_direction
 
         # if 2 * np.pi - angles_lib.normalize_angle_positive(goal) < angles_lib.normalize_angle_positive(goal) or self.angle == 0:
-        if angles_lib.normalize_angle(self.tb_rot[2]) - goal > 0:
+        if angles_lib.normalize_angle(angles_lib.normalize_angle(self.tb_rot[2]) - goal) > 0:
             direction = turn_direction * -1
 
         while not rospy.is_shutdown():
@@ -897,27 +897,23 @@ class ParkNext(State):
             # result = self.move_base_client.send_goal_and_wait(
             #     self.checkpoint_list[CURRENT_CHECKPOINT])
 
-            if CURRENT_CHECKPOINT == UNKNOWN_CHECKPOINT:
+            self.found_marker = False
+
+            rospy.sleep(rospy.Duration(2))
+
+            if self.found_marker:
                 marker_sub.unregister()
-                return "close_to_random"
+                self.shape_start_pub.publish(Bool(False))
+                return "see_AR"
+            # elif found marker
+            elif self.found_shape:
+                self.shape_start_pub.publish(Bool(False))
+                return "see_shape"
             else:
-                self.found_marker = False
-
-                rospy.sleep(rospy.Duration(2))
-
-                if self.found_marker:
-                    marker_sub.unregister()
-                    self.shape_start_pub.publish(Bool(False))
-                    return "see_AR"
-                # elif found marker
-                elif self.found_shape:
-                    self.shape_start_pub.publish(Bool(False))
-                    return "see_shape"
-                else:
-                    CURRENT_CHECKPOINT += 1
-                    marker_sub.unregister()
-                    self.shape_start_pub.publish(Bool(False))
-                    return "find_nothing"
+                CURRENT_CHECKPOINT += 1
+                marker_sub.unregister()
+                self.shape_start_pub.publish(Bool(False))
+                return "find_nothing"
 
         marker_sub.unregister()
 
@@ -1112,7 +1108,7 @@ if __name__ == "__main__":
                              "matched": "Signal3", "failure": "ForwardALittle", "exit": "exit"})
             StateMachine.add("Signal3", Signal3(), transitions={
                              "success": "ForwardALittle", "failure": "failure", "exit": "exit"})
-            StateMachine.add("ForwardALittle", Translate(0.10, 20.2), transitions={
+            StateMachine.add("ForwardALittle", Translate(0.10, 0.2), transitions={
                 "success": "TurnRight","failure": "failure", "exit": "exit"})
             StateMachine.add("TurnRight", Turn(-90), transitions={
                              "success": "Finding3", "failure": "failure", "exit": "exit"})
@@ -1123,11 +1119,11 @@ if __name__ == "__main__":
         phase4_sm = StateMachine(outcomes=['success', 'failure', 'exit'])
 
         move_list = {
-            "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
-            "point7": [Turn(180), MoveBaseGo(1), Turn(-90)],
+            "point8": [Turn(90), MoveBaseGo(1), Turn(0)],
+            "point7": [Turn(90), MoveBaseGo(0.2), Turn(180), MoveBaseGo(1), Turn(-90)],
             "point6": [Turn(180),  MoveBaseGo(0.75), Turn(-90)],
             "point1": [Turn(180), MoveBaseGo(1.2), Turn(90)],
-            "exit": [Turn(-90), MoveBaseGo(1), Turn(-90)]
+            "exit": [Turn(-90), MoveBaseGo(1.2), Turn(-90)]
 
             # "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
             # "point5": [MoveBaseGo(0.25), Turn(90), MoveBaseGo(0.2), Turn(90)],
