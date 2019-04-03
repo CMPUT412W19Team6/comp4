@@ -23,6 +23,7 @@ import random
 from std_msgs.msg import Bool, String, Int32
 import imutils
 from copy import deepcopy
+import tf
 
 START = False    
 FORWARD_CURRENT = 0
@@ -272,10 +273,11 @@ def check_forward_distance(forward_vec, start_pos, current_pos):
 
 
 class MoveBaseGo(State):
-    def __init__(self, distance = 0, yaw = 0):
+    def __init__(self, distance = 0, yaw = 0, y_dist=0):
         State.__init__(self, outcomes=["success", "exit", 'failure'])
         self.distance = distance
         self.yaw = yaw
+        self.y_dist=0
         self.move_base_client = actionlib.SimpleActionClient(
             "move_base", MoveBaseAction)
 
@@ -287,7 +289,7 @@ class MoveBaseGo(State):
             goal = MoveBaseGoal()
             goal.target_pose.header.frame_id = "base_footprint"
             goal.target_pose.pose.position.x = self.distance
-            goal.target_pose.pose.position.y = 0
+            goal.target_pose.pose.position.y = self.y_dist
             goal.target_pose.pose.orientation.x = quaternion[0]
             goal.target_pose.pose.orientation.y = quaternion[1]
             goal.target_pose.pose.orientation.z = quaternion[2]
@@ -854,11 +856,26 @@ class StartParking(State):
     def execute(self, userdata):
         pass
 
+def transformPointFromMarker(frame, target="odom", x=0, y=0,z=0):
+    listener = tf.TransformListener()
+    marker_point = PointStamped()
+    marker_point.header.frame_id = frame
+    marker_point.header.stamp = rospy.Time(0)
+    marker_point.point.x = x
+    marker_point.point.y = x
+    marker_point.point.z = x
+
+    listener.waitForTransform(
+        target, marker_point.header.frame_id, rospy.Time(0), rospy.Duration(4))
+    marker_point_transformed = listener.transformPoint(
+        target, marker_point)
+
+    return marker_point_transformed
 
 class ParkNext(State):
-    def __init__(self):
+    def __init__(self, checkpoint):
         State.__init__(self, outcomes=[
-                       "see_shape", "see_AR", "close_to_random", "find_nothing"])
+                       "see_shape", "see_AR_goal", "see_AR_box", "find_nothing"])
 
         self.checkpoint_list = [MoveBaseGoal(), MoveBaseGoal(), MoveBaseGoal(
         ), MoveBaseGoal(), MoveBaseGoal(), MoveBaseGoal(), MoveBaseGoal(), MoveBaseGoal()]
@@ -866,6 +883,9 @@ class ParkNext(State):
             "move_base", MoveBaseAction)
         self.shape_start_pub = rospy.Publisher(
             'startShape4', Bool, queue_size=1)
+
+        self.checkpoint = checkpoint
+        self.marker = None
 
     def reset(self):
         self.marker_data_received = False
@@ -875,7 +895,8 @@ class ParkNext(State):
         if not self.marker_data_received:
             self.marker_data_received = True
 
-        if len(msg.markers) > 0:
+        if len(msg.markers) > 0 and msg.markers[0].id > 0 and msg.markers[0].id < 9 and not (self.checkpoint in ['point6','point7','point8','exit']):
+            self.marker = msg.markers[0]
             self.found_marker = True
 
     def shape_callback(self, msg):
@@ -903,8 +924,12 @@ class ParkNext(State):
 
             if self.found_marker:
                 marker_sub.unregister()
+                # transform the marker pose
+                pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
+                print(pose_transformed)
+
                 self.shape_start_pub.publish(Bool(False))
-                return "see_AR"
+                return "see_AR_goal"
             # elif found marker
             elif self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
@@ -1045,8 +1070,8 @@ if __name__ == "__main__":
     sm = StateMachine(outcomes=['success', 'failure'])
     with sm:
         StateMachine.add("Wait", WaitForButton(),
-            transitions={'pressed': 'Phase1', 'exit': 'failure'})
-            # transitions={'pressed': 'Phase3', 'exit': 'failure'})
+            # transitions={'pressed': 'Phase1', 'exit': 'failure'})
+            transitions={'pressed': 'Phase4', 'exit': 'failure'})
                          
 
         StateMachine.add("Ending", FollowLine(),
@@ -1119,10 +1144,14 @@ if __name__ == "__main__":
         phase4_sm = StateMachine(outcomes=['success', 'failure', 'exit'])
 
         move_list = {
-            "point8": [Turn(90), MoveBaseGo(1), Turn(0)],
-            "point7": [Turn(90), MoveBaseGo(0.2), Turn(180), MoveBaseGo(1), Turn(-90)],
+            "point8": [Turn(90), MoveBaseGo(1.1,0,-0.2), Turn(0)],
+            "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(1), Turn(-90)],
             "point6": [Turn(180),  MoveBaseGo(0.75), Turn(-90)],
-            "point1": [Turn(180), MoveBaseGo(1.2), Turn(90)],
+            "point1": [Turn(180), MoveBaseGo(1.2, 0, -0.5), Turn(90)],
+            "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point5": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "exit": [Turn(-90), MoveBaseGo(1.2), Turn(-90)]
 
             # "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
@@ -1147,7 +1176,7 @@ if __name__ == "__main__":
         park_distance =       [0.25,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
 
         # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
-        checkpoint_sequence = ["point8", "point7", "point6", "point1", "exit"]
+        checkpoint_sequence = ["point8", "point7", "point6", "point1", "point2","point3","point4","point5", "exit"]
 
         with phase4_sm:
             i = 0
@@ -1181,15 +1210,10 @@ if __name__ == "__main__":
                             StateMachine.add(name, moves_to_point[j], transitions={
                                 "success": checkpoint_sequence[i] + "-" + "ParkNext", "failure": "failure", "exit": "exit"
                             })
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkNext", ParkNext(), transitions={
-                                "see_shape": checkpoint_sequence[i] + "-" + "MatchShape", "see_AR": checkpoint_sequence[i] + "-" + "ParkAR", "close_to_random": checkpoint_sequence[i] + "-" + "ParkRandom", "find_nothing": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkNext", ParkNext(checkpoint_sequence[i]), transitions={
+                                "see_shape": checkpoint_sequence[i] + "-" + "MatchShape", "see_AR_goal": checkpoint_sequence[i] + "-" + "SignalARGoal", "see_AR_box": checkpoint_sequence[i] + "-" + "SignalARBox", "find_nothing": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkAR", MoveBaseGo(park_distance[i]), transitions={
-                                "success": checkpoint_sequence[i] + "-" + "SignalAR", "failure": "failure", "exit": "exit"
-                            })
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkRandom", MoveBaseGo(park_distance[i]), transitions={
-                                "success": checkpoint_sequence[i] + "-" + "SignalRandom", "failure": "failure", "exit": "exit"
-                            })
+
                             StateMachine.add(checkpoint_sequence[i] + "-" + "ParkShape", MoveBaseGo(park_distance[i]), transitions={
                                 "success": checkpoint_sequence[i] + "-" + "SignalShape", "failure": "failure", "exit": "exit"
                             })
@@ -1197,18 +1221,22 @@ if __name__ == "__main__":
                                 "success": next_state_name, "failure": "failure", "exit": "exit"
                             })
                             StateMachine.add(checkpoint_sequence[i] + "-" + "MatchShape", CheckShape(), transitions={
-                                "matched": checkpoint_sequence[i] + "-" + "ParkShape", "failure": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup", "exit": "exit"
+                                "matched": checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", "failure": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup", "exit": "exit"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalAR", Signal4(True, 1), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARGoal", Signal4(True, 1), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShape", Signal4(True, 2), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARBox", Signal4(True, 3), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalRandom", Signal4(True, 3), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", Signal4(True, 2), transitions={
+                                "done": checkpoint_sequence[i] + "-" + "ParkShape"
+                            })
+
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShape", Signal4(True, 2, True, 1), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
                             })
 
@@ -1231,38 +1259,6 @@ if __name__ == "__main__":
                         })
             StateMachine.add("ForwardUntilWhite", Translate(),
                                         transitions={"success": "success"}) 
-
-              
-        # with phase4_sm:
-            
-
-        #     StateMachine.add("ParkNext", ParkNext(), transitions={
-        #         "see_shape": "MatchShape", "see_AR": "SignalAR", "close_to_random": "SignalRandom", "find_nothing": "ParkNext"
-        #     })
-
-        #     StateMachine.add("MatchShape", CheckShape(), transitions={
-        #                      "matched": "SignalShape", "failure": "ParkNext", "exit": "exit"})
-
-        #     StateMachine.add("SignalAR", Signal4(True, 1), transitions={
-        #                      "done": "CheckCompletion"})
-
-        #     StateMachine.add("SignalShape", Signal4(True, 2), transitions={
-        #                      "done": "CheckCompletion"})
-
-        #     StateMachine.add("SignalRandom", Signal4(True, 3), transitions={
-        #                      "done": "CheckCompletion"})
-
-        #     StateMachine.add("CheckCompletion", CheckCompletion(), transitions={
-        #                      "completed": "PartAtExit", "not_completed": "ParkNext"})
-
-        #     StateMachine.add("PartAtExit", ParkAtExit(), transitions={
-        #                      "done": "ForwardUntilWhite"})
-
-        #     StateMachine.add("ForwardUntilWhite", Translate(),
-        #                      transitions={"success": "success"})
-
-        # StateMachine.add("Phase4", phase4_sm, transitions={
-        #                  'success': 'Phase3', 'failure': 'failure', 'exit': 'Wait'})
 
         StateMachine.add("Phase4", phase4_sm, transitions={
                          'success': 'Phase3', 'failure': 'failure', 'exit': 'Wait'})

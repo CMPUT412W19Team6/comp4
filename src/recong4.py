@@ -25,11 +25,11 @@ def image_callback(msg):
         mask = cv2.inRange(hsv, lower_red, upper_red)
 
         h, w, d = image.shape
-        search_top = 1*h/2
-        search_bot = 3*h/4 + 20
+        search_top = 1*h/6
+        search_bot = 3*h/4
 
-        # mask[0:search_top, 0:w] = 0
-        # mask[search_bot:h, 0:w] = 0
+        mask[0:search_top, 0:w] = 0
+        mask[search_bot:h, 0:w] = 0
         M = cv2.moments(mask)
 
         getShape(mask)
