@@ -24,7 +24,7 @@ from std_msgs.msg import Bool, String, Int32
 import imutils
 from copy import deepcopy
 
-START = True    
+START = False    
 FORWARD_CURRENT = 0
 TURN_CURRENT = 0
 POSE = [0, 0, 0, 0]
@@ -41,6 +41,8 @@ BRIDGE = cv_bridge.CvBridge()
 IMAGE = None
 
 TB_POSE = None
+
+GREEN_FOUND = False
 
 # TODO: update POSE from callback
 
@@ -72,7 +74,6 @@ class FollowLine(State):
         self.phase = phase
         self.green_start_pub = rospy.Publisher(
             'green_start', Bool, queue_size=1)
-        self.green_sub = rospy.Subscriber('hasShape2', Bool, self.green_callback)
         self.find_green = False
         self.reset()
 
@@ -87,11 +88,8 @@ class FollowLine(State):
         self.object_area = 0
         self.dt = 1.0 / 20.0
 
-    def green_callback(self, msg):
-        self.find_green = msg.data
-
     def execute(self, userdata):
-        global PHASE, FORWARD_CURRENT, TURN_CURRENT, linear_vel, red_timeout, Kp, Kd, Ki, IMAGE
+        global PHASE, FORWARD_CURRENT, TURN_CURRENT, linear_vel, red_timeout, Kp, Kd, Ki, IMAGE, GREEN_FOUND
 
         FORWARD_CURRENT = 0.0
         TURN_CURRENT = 0.0
@@ -106,6 +104,7 @@ class FollowLine(State):
 
         while not rospy.is_shutdown() and START:
             self.image = IMAGE
+            self.find_green = GREEN_FOUND
 
             if self.image is None:
                 continue
@@ -986,6 +985,11 @@ def odom_callback(msg):
 
     TB_POSE = msg.pose.pose
 
+def green_callback(msg):
+    global GREEN_FOUND
+
+    GREEN_FOUND = msg.data
+
 if __name__ == "__main__":
     rospy.init_node('comp4')
 
@@ -1017,6 +1021,7 @@ if __name__ == "__main__":
     rospy.Subscriber("/joy", Joy, callback=joy_callback)
     rospy.Subscriber("odom", Odometry, callback=odom_callback)
     rospy.Subscriber('/usb_cam/image_raw', Image, callback=image_callback)
+    rospy.Subscriber('hasShape2', Bool, callback=green_callback)
 
     srv = Server(Comp4Config, dr_callback)
 
