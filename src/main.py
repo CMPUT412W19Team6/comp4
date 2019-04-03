@@ -1103,19 +1103,34 @@ if __name__ == "__main__":
 
         move_list = {
             "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
-            "point5": [MoveBaseGo(0.25), Turn(90), MoveBaseGo(0.2), Turn(90)],
-            "point4": [Turn(180), MoveBaseGo(0.80), Turn(90)],
-            "point7": [Turn(180), MoveBaseGo(0.45), Turn(-90)], 
-            "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
-            "point3": [Turn(0), MoveBaseGo(0.4), Turn(90)],
-            "point2": [Turn(180), MoveBaseGo(0.8), Turn(90) ],
-            "point1": [Turn(180), MoveBaseGo(0.8), Turn(90)],
-            "exit":   [Turn(-90), MoveBaseGo(1.6), Turn(-90)],
+            "point7": [Turn(180), MoveBaseGo(1), Turn(-90)],
+            "point6": [Turn(180),  MoveBaseGo(0.75), Turn(-90)],
+            "point1": [Turn(180), MoveBaseGo(1.2), Turn(90)],
+            "exit": [Turn(-90), MoveBaseGo(1), Turn(-90)]
+
+            # "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
+            # "point5": [MoveBaseGo(0.25), Turn(90), MoveBaseGo(0.2), Turn(90)],
+            # "point4": [Turn(180), MoveBaseGo(0.80), Turn(90)],
+            # "point7": [Turn(180), MoveBaseGo(0.45), Turn(-90)], 
+            # "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
+            # "point3": [Turn(0), MoveBaseGo(0.4), Turn(90)],
+            # "point2": [Turn(180), MoveBaseGo(0.8), Turn(90) ],
+            # "point1": [Turn(180), MoveBaseGo(0.8), Turn(90)],
+            # "exit":   [Turn(-90), MoveBaseGo(1.6), Turn(-90)],
         }
+
+
+
+
+
+
+
+
 
         park_distance =       [0.25,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
 
-        checkpoint_sequence = ["point8", "point5", "point4", "point7", "point6", "point3", "point2", "point1", "exit"]
+        # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
+        checkpoint_sequence = ["point8", "point7", "point6", "point1", "exit"]
 
         with phase4_sm:
             i = 0
