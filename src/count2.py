@@ -100,7 +100,7 @@ def ready_callback(msg):
     if msg.data and not finished:
         start = True
         start_time = rospy.Time.now()
-        end_time = rospy.Time.now() + rospy.Duration(10)
+        end_time = rospy.Time.now() + rospy.Duration(4)
 
 
 rospy.init_node("count2")
@@ -108,7 +108,7 @@ bridge = cv_bridge.CvBridge()
 image_sub = rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
 start_sub = rospy.Subscriber('/start2', Bool, ready_callback)
 start_time = rospy.Time.now()
-end_time = rospy.Time.now() + rospy.Duration(10)
+end_time = rospy.Time.now() + rospy.Duration(4)
 
 shape_pub = rospy.Publisher("shape2", String, queue_size=1)
 count_pub = rospy.Publisher("count2", Int32, queue_size=1)

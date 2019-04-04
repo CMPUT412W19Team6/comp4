@@ -25,10 +25,10 @@ def image_callback(msg):
         mask = cv2.inRange(hsv, lower_red, upper_red)
 
         h, w, d = image.shape
-        search_top = 1*h/7
+        search_top = 1*h/10
         search_bot = 3*h/5
 
-        mask[0:search_top, 0:w] = 0
+        # mask[0:search_top, 0:w] = 0
         mask[search_bot:h, 0:w] = 0
         M = cv2.moments(mask)
 
@@ -97,7 +97,7 @@ def ready_callback(msg):
     if msg.data:
         start = True
         start_time = rospy.Time.now()
-        end_time = rospy.Time.now() + rospy.Duration(6)
+        end_time = rospy.Time.now() + rospy.Duration(3)
 
 
 rospy.init_node("recong4")
@@ -106,6 +106,6 @@ image_sub = rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
 start_sub = rospy.Subscriber('/start3', Bool, ready_callback)
 shape_pub = rospy.Publisher("/shape3", String, queue_size=10)
 start_time = rospy.Time.now()
-end_time = rospy.Time.now() + rospy.Duration(6)
+end_time = rospy.Time.now() + rospy.Duration(3)
 
 rospy.spin()

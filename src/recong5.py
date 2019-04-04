@@ -98,7 +98,7 @@ def ready_callback(msg):
     if msg.data:
         start = True
         start_time = rospy.Time.now()
-        end_time = rospy.Time.now() + rospy.Duration(6)
+        end_time = rospy.Time.now() + rospy.Duration(3)
 
 
 rospy.init_node("recong5")
@@ -107,6 +107,6 @@ image_sub = rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
 start_sub = rospy.Subscriber('/start5', Bool, ready_callback)
 shape_pub = rospy.Publisher("/shape5", String, queue_size=10)
 start_time = rospy.Time.now()
-end_time = rospy.Time.now() + rospy.Duration(6)
+end_time = rospy.Time.now() + rospy.Duration(3)
 
 rospy.spin()

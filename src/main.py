@@ -905,7 +905,7 @@ class ParkNext(State):
             self.marker_data_received = True
         self.count += 1
         if len(msg.markers) > 0 and msg.markers[0].id > 0 and msg.markers[0].id < 9 and not (self.checkpoint in ['point6','point7','point8','exit']):
-            
+            print("found a marker????????????????", msg.markers[0].id)
             if self.checkpoint == "look_for_box":
                 # save the box id
                 BOX_ID = msg.markers[0].id
@@ -934,8 +934,9 @@ class ParkNext(State):
 
             self.found_marker = False
 
-            while self.count < 40:
-                continue
+            while self.count < 16:
+                rospy.Rate(30).sleep()
+                
             # save point 1 as the exit point
             if self.checkpoint == "point1":
                 quaternion = quaternion_from_euler(0, 0, -math.pi/2)
@@ -955,7 +956,7 @@ class ParkNext(State):
                 
                 self.shape_start_pub.publish(Bool(False))
 
-                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.1: 
+                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.3: 
                     # found an AR tag at current checkpoint
                     if BOX_ID == self.marker.id:
                         # found the box
@@ -972,11 +973,13 @@ class ParkNext(State):
                         PHASE4_FACING = "goal"
                         return "see_AR_goal"
                 else:
+                    print("not aligned", abs(TB_POSE.position.x - pose_transformed.point.x))
                     return "find_nothing"
             elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
                 return "see_shape"
             else:
+                print("Acctually nothing")
                 CURRENT_CHECKPOINT += 1
                 marker_sub.unregister()
                 self.shape_start_pub.publish(Bool(False))
@@ -1080,8 +1083,8 @@ class PushBox(State):
         # turn 90
         Turn(90).execute(None)
 
-        # go forward 05
-        MoveBaseGo(0.75).execute(None)
+        # go forward
+        MoveBaseGo(1.05).execute(None)
 
         # turn based on toRight
         if toRight:
