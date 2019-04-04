@@ -919,7 +919,7 @@ class ParkNext(State):
     def execute(self, userdata):
         global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID, TB_POSE
         global PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND, PHASE4_BOX_CHECKPOINT, PHASE4_GOAL_CHECKPOINT, PHASE4_EXIT_GOAL
-        global PHASE4_BOX_X, PHASE4_GOAL_X, PHASE4_FACING
+        global PHASE4_BOX_X, PHASE4_GOAL_X, PHASE4_FACING ,PHASE4_PUSH_Y
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -964,6 +964,7 @@ class ParkNext(State):
                         PHASE4_BOX_FOUND = True
                         PHASE4_BOX_CHECKPOINT = self.checkpoint
                         PHASE4_BOX_X = pose_transformed.point.x
+                        PHASE4_PUSH_Y = abs(pose_transformed.point.y - TB_POSE.position.y)
                         PHASE4_FACING = "box"
                         return "see_AR_box"
                     else:
@@ -1069,7 +1070,7 @@ class PushBox(State):
 
     def push(self, toRight):
         global PHASE4_BOX_CHECKPOINT, PHASE4_BOX_X
-        global PHASE4_GOAL_CHECKPOINT, PHASE4_GOAL_X  
+        global PHASE4_GOAL_CHECKPOINT, PHASE4_GOAL_X  , PHASE4_PUSH_Y
 
         # turn based on toRight
         if toRight:
@@ -1088,7 +1089,11 @@ class PushBox(State):
         Turn(90).execute(None)
 
         # go forward
-        MoveBaseGo(1.05).execute(None)
+        if not toRight:
+            MoveBaseGo(1.05).execute(None)
+        else:
+            MoveBaseGo(PHASE4_PUSH_Y).execute(None)
+            
 
         # turn based on toRight
         if toRight:
