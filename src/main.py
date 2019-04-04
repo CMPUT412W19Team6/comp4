@@ -44,12 +44,13 @@ IMAGE = None
 TB_POSE = None
 
 GREEN_FOUND = False
+
 PHASE4_SHAPE_FOUND = False
-
 BOX_ID = 1
-
-# TODO: update POSE from callback
-
+PHASE4_BOX_FOUND = False
+PHASE4_GOAL_FOUND = False
+PHASE4_BOX_CHECKPOINT = ""
+PHASE4_GOAL_CHECKPOINT = ""
 
 class WaitForButton(State):
     def __init__(self):
@@ -910,6 +911,7 @@ class ParkNext(State):
 
     def execute(self, userdata):
         global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID, TB_POSE
+        global PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND, PHASE4_BOX_CHECKPOINT, PHASE4_GOAL_CHECKPOINT
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -935,13 +937,20 @@ class ParkNext(State):
                 
                 self.shape_start_pub.publish(Bool(False))
 
-                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.1:
+                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.1: 
+                    # found an AR tag at current checkpoint
                     if BOX_ID == self.marker.id:
+                        # found the box
+                        PHASE4_BOX_FOUND = True
+                        PHASE4_BOX_CHECKPOINT = self.checkpoint
                         return "see_AR_box"
-                    return "see_AR_goal"
+                    else:
+                        # found the goal
+                        PHASE4_GOAL_FOUND = True
+                        PHASE4_GOAL_CHECKPOINT = self.checkpoint
+                        return "see_AR_goal"
                 else:
                     return "find_nothing"
-            # elif found marker
             elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
                 return "see_shape"
@@ -996,12 +1005,12 @@ class CheckCompletion(State):
         self.backup = backup
 
     def execute(self, userdata):
-        global PHASE4_TASK_COMPLETED, CURRENT_CHECKPOINT
+        global PHASE4_TASK_COMPLETED, CURRENT_CHECKPOINT, PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND
 
         if START and not rospy.is_shutdown():
             PHASE4_TASK_COMPLETED += 1
 
-            if CURRENT_CHECKPOINT == 8:
+            if PHASE4_BOX_FOUND and PHASE4_GOAL_FOUND:
                 return "completed"
             else:
                 CURRENT_CHECKPOINT += 1
