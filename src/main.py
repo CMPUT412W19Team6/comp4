@@ -1300,6 +1300,7 @@ if __name__ == "__main__":
 
         # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
         checkpoint_sequence = ["point8", "point7", "point6", "look_for_box" ,"point1", "point2","point3","point4","point5", "exit"]
+        checkpoint_backup_angle = [0, -90, -90, 90, 90, 90,90,90,90,90]
 
         with phase4_sm:
             i = 0
@@ -1340,6 +1341,9 @@ if __name__ == "__main__":
                             StateMachine.add(checkpoint_sequence[i] + "-" + "ParkShape", MoveBaseGo(park_distance[i]), transitions={
                                 "success": checkpoint_sequence[i] + "-" + "SignalShape", "failure": "failure", "exit": "exit"
                             })
+                            
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "TurnBeforeBackup", Turn(checkpoint_backup_angle[i]),transitions={"success": checkpoint_sequence[i] + "-" + "Moveback", "failure": "failure", "exit": "exit"} )
+
                             StateMachine.add(checkpoint_sequence[i] + "-" + "Moveback", Translate(park_distance[i],-0.2), transitions={
                                 "success": next_state_name, "failure": "failure", "exit": "exit"
                             })
@@ -1364,7 +1368,7 @@ if __name__ == "__main__":
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletion", CheckCompletion(True), transitions={
-                                "completed": next_state_name, "not_completed": checkpoint_sequence[i] + "-" + "Moveback", "next": next_state_name
+                                "completed": next_state_name, "not_completed": checkpoint_sequence[i] + "-" + "TurnBeforeBackup", "next": next_state_name
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup", CheckCompletion(False), transitions={
