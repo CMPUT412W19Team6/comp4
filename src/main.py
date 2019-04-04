@@ -893,7 +893,7 @@ class ParkNext(State):
 
         self.checkpoint = checkpoint
         self.marker = None
-
+        self.debugSound = Signal4(False,0)
     def reset(self):
         self.marker_data_received = False
         self.found_marker = False
@@ -909,7 +909,7 @@ class ParkNext(State):
             if self.checkpoint == "look_for_box":
                 # save the box id
                 BOX_ID = msg.markers[0].id
-                Signal4(False,0).execute(None)
+                self.debugSound.execute(None)
             self.marker = msg.markers[0]
             self.found_marker = True
 
@@ -1007,7 +1007,6 @@ class Signal4(State):
         
 
     def execute(self, userdata):
-        pass
 
         if self.playsound:
             self.sound_pub.publish(Sound(0))
@@ -1016,11 +1015,12 @@ class Signal4(State):
         if self.led2:
             self.led2_pub.publish(self.led2color)
 
-        rospy.sleep(rospy.Duration(3))
-        if self.led1:
-            self.led1_pub.publish(0)
-        if self.led2:
-            self.led2_pub.publish(0)
+        if  self.led1 or self.led2:
+            rospy.sleep(rospy.Duration(3))
+            if self.led1:
+                self.led1_pub.publish(0)
+            if self.led2:
+                self.led2_pub.publish(0)
 
         return "done"
 
