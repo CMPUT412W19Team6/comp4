@@ -57,7 +57,8 @@ PHASE4_FACING = "" # either box or goal
 PHASE4_EXIT_GOAL = None
 PHASE4_DELTA_X = 0
 PHASE4_PUSH_Y = 0
-
+PHASE4_START_ADJUST= False
+PHASE4_FINISHED_ADJUST = False
 class WaitForButton(State):
     def __init__(self):
         State.__init__(self, outcomes=["pressed", "exit"])
@@ -373,13 +374,13 @@ class Turn(State):
     Turning a specific angle, based on Sean's example code from demo2
     """
 
-    def __init__(self, angle=90):
+    def __init__(self, angle=90, radian=False):
         State.__init__(self, outcomes=["success", "exit", 'failure'])
         self.tb_position = None
         self.tb_rot = None
         # angle defines angle target relative to goal direction
         self.angle = angle
-
+        self.radian = radian
         # pub / sub
         self.cmd_pub = rospy.Publisher(
             "cmd_vel", Twist, queue_size=1)
@@ -407,19 +408,24 @@ class Turn(State):
 
         start_pose = POSE
         if self.angle == 0:  # target is goal + 0
-            goal = start_pose[1]
+            goal = start_pose[2]
         elif self.angle == 90:  # target is goal + turn_direction * 90
-            goal = start_pose[1] + np.pi/2 * turn_direction
+            goal = start_pose[2] + np.pi/2 * turn_direction
         elif self.angle == 180:  # target is goal + turn_direction * 180
-            goal = start_pose[1] + np.pi * turn_direction
+            goal = start_pose[2] + np.pi * turn_direction
         elif self.angle == -90:  # target is goal + turn_direction * 270
-            goal = start_pose[1] - np.pi/2 * turn_direction
+            goal = start_pose[2] - np.pi/2 * turn_direction
         elif self.angle == -100:  # target is goal + turn_direction * 270
-            goal = start_pose[1] - 5*np.pi/9 * turn_direction
+            goal = start_pose[2] - 5*np.pi/9 * turn_direction
         elif self.angle == 120:
-            goal = start_pose[1] + 2*np.pi/3 *turn_direction
+            goal = start_pose[2] + 2*np.pi/3 *turn_direction
         elif self.angle == 135:
-            goal = start_pose[1] + 150*np.pi/180 * turn_direction
+            goal = start_pose[2] + 150*np.pi/180 * turn_direction
+        else:
+            goal = start_pose[2] + self.angle*np.pi/180 * turn_direction
+
+        if self.radian:
+            goal = start_pose[2] + self.angle * turn_direction
 
         goal = angles_lib.normalize_angle(goal)
 
@@ -1147,6 +1153,15 @@ def green_callback(msg):
 
     GREEN_FOUND = msg.data
 
+def marker_callback(msg):
+    global PHASE4_START_ADJUST, PHASE4_FINISHED_ADJUST
+    if PHASE4_START_ADJUST:
+        if len(msg.markers) <= 0:
+            PHASE4_FINISHED_ADJUST = True
+        __, __, angles, position, __ = decompose_matrix(numpify(msg.markers[0].pose.pose))
+        target_angle = angles[2] + np.pi
+
+
 if __name__ == "__main__":
     rospy.init_node('comp4')
 
@@ -1179,6 +1194,7 @@ if __name__ == "__main__":
     rospy.Subscriber("odom", Odometry, callback=odom_callback)
     rospy.Subscriber('/usb_cam/image_raw', Image, callback=image_callback)
     rospy.Subscriber('hasShape2', Bool, callback=green_callback)
+    rospy.Subscriber('ar_pose_marker_base', AlvarMarkers, callback=marker_callback)
 
     srv = Server(Comp4Config, dr_callback)
 
@@ -1332,15 +1348,15 @@ if __name__ == "__main__":
                                 "matched": checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", "failure": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup", "exit": "exit"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARGoal", Signal4(True, 1), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARGoal", Signal4(True, 1, True, 0), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARBox", Signal4(True, 3), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARBox", Signal4(True, 3, True, 0), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", Signal4(True, 2), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", Signal4(True, 2, True, 0), transitions={
                                 "done": checkpoint_sequence[i] + "-" + "ParkShape"
                             })
 
