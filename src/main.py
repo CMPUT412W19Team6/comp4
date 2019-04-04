@@ -273,11 +273,10 @@ def check_forward_distance(forward_vec, start_pos, current_pos):
 
 
 class MoveBaseGo(State):
-    def __init__(self, distance = 0, yaw = 0, y_dist=0):
+    def __init__(self, distance = 0, yaw = 0):
         State.__init__(self, outcomes=["success", "exit", 'failure'])
         self.distance = distance
         self.yaw = yaw
-        self.y_dist=0
         self.move_base_client = actionlib.SimpleActionClient(
             "move_base", MoveBaseAction)
 
@@ -289,7 +288,7 @@ class MoveBaseGo(State):
             goal = MoveBaseGoal()
             goal.target_pose.header.frame_id = "base_footprint"
             goal.target_pose.pose.position.x = self.distance
-            goal.target_pose.pose.position.y = self.y_dist
+            goal.target_pose.pose.position.y = 0
             goal.target_pose.pose.orientation.x = quaternion[0]
             goal.target_pose.pose.orientation.y = quaternion[1]
             goal.target_pose.pose.orientation.z = quaternion[2]
@@ -1144,10 +1143,10 @@ if __name__ == "__main__":
         phase4_sm = StateMachine(outcomes=['success', 'failure', 'exit'])
 
         move_list = {
-            "point8": [Turn(90), MoveBaseGo(1.1,0,-0.2), Turn(0)],
+            "point8": [Turn(90), MoveBaseGo(1.1), Turn(0), Translate(0.2, -0.2)],
             "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(1), Turn(-90)],
-            "point6": [Turn(180),  MoveBaseGo(0.75), Turn(-90)],
-            "point1": [Turn(180), MoveBaseGo(1.2, 0, -0.5), Turn(90)],
+            "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
+            "point1": [Turn(180), MoveBaseGo(1.2), Turn(90), Translate(0.5, -0.2)],
             "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
@@ -1165,15 +1164,7 @@ if __name__ == "__main__":
             # "exit":   [Turn(-90), MoveBaseGo(1.6), Turn(-90)],
         }
 
-
-
-
-
-
-
-
-
-        park_distance =       [0.25,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
+        park_distance =       [0.5,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
 
         # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
         checkpoint_sequence = ["point8", "point7", "point6", "point1", "point2","point3","point4","point5", "exit"]
@@ -1240,7 +1231,7 @@ if __name__ == "__main__":
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletion", CheckCompletion(), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletion", CheckCompletion(False), transitions={
                                 "completed": next_state_name, "not_completed": checkpoint_sequence[i] + "-" + "Moveback", "next": next_state_name
                             })
 
