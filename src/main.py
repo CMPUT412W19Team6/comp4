@@ -28,7 +28,7 @@ import tf
 START = False    
 FORWARD_CURRENT = 0
 TURN_CURRENT = 0
-POSE = [0, 0, 0, 0]
+POSE = [0, 0, 0]
 turn_direction = 1
 PHASE = None
 SHAPE = "triangle"
@@ -390,6 +390,7 @@ class Turn(State):
         __, __, angles, position, __ = decompose_matrix(numpify(TB_POSE))
         self.tb_position = position[0:2]
         self.tb_rot = angles
+        print(angles)
 
     def execute(self, userdata):
         global turn_direction, TB_POSE
@@ -968,6 +969,7 @@ class ParkNext(State):
                         PHASE4_BOX_X = pose_transformed.point.x
                         PHASE4_PUSH_Y = abs(pose_transformed.point.y - TB_POSE.position.y)
                         PHASE4_DELTA_X = abs(pose_transformed.point.x - TB_POSE.position.x)
+                        self.update_initial_pose(pose_transformed)
                         PHASE4_FACING = "box"
                         return "see_AR_box"
                     else:
@@ -991,7 +993,11 @@ class ParkNext(State):
                 return "find_nothing"
 
         marker_sub.unregister()
-
+    
+    def update_initial_pose(self, tb_pose):
+        global POSE
+        __,__, angles, position, __ = decompose_matrix(numpify(tb_pose))
+        POSE[2] = angles[2] + math.pi/2
 
 class Signal4(State):
     def __init__(self, led1, led1color, led2=False, led2color=None, playsound=True):
@@ -1105,11 +1111,11 @@ class PushBox(State):
             Turn(0).execute(None)
 
         # Push
-        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - 0.45
+        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - 0.4
         Translate(dis, 0.2).execute(None)
 
         # Signal when done
-        Signal4(True, 1, True, 3)
+        Signal4(True, 1, True, 3).execute(None)
 
 class MoveBaseUsingOdom(State):
     def __init__(self):
