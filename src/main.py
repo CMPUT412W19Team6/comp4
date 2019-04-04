@@ -934,9 +934,13 @@ class ParkNext(State):
                 pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
                 
                 self.shape_start_pub.publish(Bool(False))
-                if BOX_ID == self.marker.id:
-                    return "see_AR_box"
-                return "see_AR_goal"
+
+                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.1:
+                    if BOX_ID == self.marker.id:
+                        return "see_AR_box"
+                    return "see_AR_goal"
+                else:
+                    return "find_nothing"
             # elif found marker
             elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
@@ -1154,8 +1158,8 @@ if __name__ == "__main__":
             "point8": [Turn(90), MoveBaseGo(1.1), Turn(0), Translate(0.2, -0.2)],
             "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(1), Turn(-90)],
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
-            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.5), Turn(0), Translate(0.2)],
-            "point1": [Translate(0.2,0.2), Turn(-90), MoveBaseGo(1), Turn(90)],
+            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.2)],
+            "point1": [Translate(0.2,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
             "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
@@ -1225,11 +1229,11 @@ if __name__ == "__main__":
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARGoal", Signal4(True, 1), transitions={
-                                "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
+                                "done": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "SignalARBox", Signal4(True, 3), transitions={
-                                "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
+                                "done": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "SignalShapeBeforePark", Signal4(True, 2), transitions={
@@ -1240,7 +1244,7 @@ if __name__ == "__main__":
                                 "done": checkpoint_sequence[i] + "-" + "CheckCompletion"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletion", CheckCompletion(False), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletion", CheckCompletion(True), transitions={
                                 "completed": next_state_name, "not_completed": checkpoint_sequence[i] + "-" + "Moveback", "next": next_state_name
                             })
 
