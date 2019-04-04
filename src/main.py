@@ -955,20 +955,21 @@ class ParkNext(State):
 
             if self.found_marker and self.checkpoint != "look_for_box":
                 # transform the marker pose
-                pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
+                # pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
+                pose_transformed = self.marker.pose.pose
                 marker_sub.unregister()
                 
                 self.shape_start_pub.publish(Bool(False))
 
-                if abs(TB_POSE.position.x - pose_transformed.point.x) < 0.3: 
+                if abs(TB_POSE.position.x - pose_transformed.position.x) < 0.3: 
                     # found an AR tag at current checkpoint
                     if BOX_ID == self.marker.id:
                         # found the box
                         PHASE4_BOX_FOUND = True
                         PHASE4_BOX_CHECKPOINT = self.checkpoint
-                        PHASE4_BOX_X = pose_transformed.point.x
-                        PHASE4_PUSH_Y = abs(pose_transformed.point.y - TB_POSE.position.y)
-                        PHASE4_DELTA_X = abs(pose_transformed.point.x - TB_POSE.position.x)
+                        PHASE4_BOX_X = pose_transformed.position.x
+                        PHASE4_PUSH_Y = abs(pose_transformed.position.y - TB_POSE.position.y)
+                        PHASE4_DELTA_X = abs(pose_transformed.position.x - TB_POSE.position.x)
                         self.update_initial_pose(pose_transformed)
                         PHASE4_FACING = "box"
                         return "see_AR_box"
@@ -976,11 +977,11 @@ class ParkNext(State):
                         # found the goal
                         PHASE4_GOAL_FOUND = True
                         PHASE4_GOAL_CHECKPOINT = self.checkpoint
-                        PHASE4_GOAL_X = pose_transformed.point.x
+                        PHASE4_GOAL_X = pose_transformed.position.x
                         PHASE4_FACING = "goal"
                         return "see_AR_goal"
                 else:
-                    print("not aligned", abs(TB_POSE.position.x - pose_transformed.point.x))
+                    print("not aligned", abs(TB_POSE.position.x - pose_transformed.position.x))
                     return "find_nothing"
             elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
@@ -996,6 +997,7 @@ class ParkNext(State):
     
     def update_initial_pose(self, tb_pose):
         global POSE
+        Pose()
         __,__, angles, position, __ = decompose_matrix(numpify(tb_pose))
         POSE[2] = angles[2] + math.pi/2
 
@@ -1183,8 +1185,8 @@ if __name__ == "__main__":
     sm = StateMachine(outcomes=['success', 'failure'])
     with sm:
         StateMachine.add("Wait", WaitForButton(),
-            transitions={'pressed': 'Phase1', 'exit': 'failure'})
-            # transitions={'pressed': 'Phase4', 'exit': 'failure'})
+            # transitions={'pressed': 'Phase1', 'exit': 'failure'})
+            transitions={'pressed': 'Phase4', 'exit': 'failure'})
                          
 
         StateMachine.add("Ending", FollowLine(),

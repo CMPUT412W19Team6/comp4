@@ -29,7 +29,7 @@
 	<arg name="cam_image_topic"                             default="/camera/rgb/image_raw"/>
 	<arg name="cam_info_topic"                              default="/camera/rgb/camera_info"/>
 
-	<arg name="ar_output_frame"                             default="base_link"/>
+	<arg name="ar_output_frame"                             default="odom"/>
     <arg name="marker_size"                                 default="19.9" />
 	<arg name="max_new_marker_error"                        default="0.08"/>
 	<arg name="max_track_error"                             default="0.2"/>
