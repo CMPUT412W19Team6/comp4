@@ -934,7 +934,7 @@ class ParkNext(State):
 
             self.found_marker = False
 
-            rospy.sleep(rospy.Duration(2))
+            # rospy.sleep(rospy.Duration(2))
 
             # save point 1 as the exit point
             if self.checkpoint == "point1":
@@ -1238,9 +1238,9 @@ if __name__ == "__main__":
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
             "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.1)],
             "point1": [Translate(0.1,0.2), Turn(-90), MoveBaseGo(1.3), Turn(90)],
-            "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point2": [Turn(0), MoveBaseGo(0.75), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
-            "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point4": [Turn(0), MoveBaseGo(0.85), Turn(90)],
             "point5": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "exit": [Turn(-90), MoveBaseGo(0.7), Turn(-90)]
 
