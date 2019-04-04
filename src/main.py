@@ -46,6 +46,8 @@ TB_POSE = None
 GREEN_FOUND = False
 PHASE4_SHAPE_FOUND = False
 
+BOX_ID = 1
+
 # TODO: update POSE from callback
 
 
@@ -892,10 +894,14 @@ class ParkNext(State):
         self.found_marker = False
 
     def marker_callback(self, msg):
+        global BOX_ID
         if not self.marker_data_received:
             self.marker_data_received = True
 
         if len(msg.markers) > 0 and msg.markers[0].id > 0 and msg.markers[0].id < 9 and not (self.checkpoint in ['point6','point7','point8','exit']):
+            if self.checkpoint == "look_for_box":
+                # save the box id
+                BOX_ID = msg.markers[0].id
             self.marker = msg.markers[0]
             self.found_marker = True
 
@@ -903,7 +909,7 @@ class ParkNext(State):
         self.found_shape = msg.data
 
     def execute(self, userdata):
-        global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED
+        global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -922,13 +928,15 @@ class ParkNext(State):
 
             rospy.sleep(rospy.Duration(2))
 
-            if self.found_marker:
+            if self.found_marker and self.checkpoint != "look_for_box":
                 marker_sub.unregister()
                 # transform the marker pose
                 pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
                 print(pose_transformed)
-
+                
                 self.shape_start_pub.publish(Bool(False))
+                if BOX_ID == self.marker.id:
+                    return "see_AR_box"
                 return "see_AR_goal"
             # elif found marker
             elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
@@ -1147,7 +1155,8 @@ if __name__ == "__main__":
             "point8": [Turn(90), MoveBaseGo(1.1), Turn(0), Translate(0.2, -0.2)],
             "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(1), Turn(-90)],
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
-            "point1": [Turn(180), MoveBaseGo(1.2), Turn(90), Translate(0.5, -0.2)],
+            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.5), Turn(0), Translate(0.2)],
+            "point1": [Translate(0.2,0.2), Turn(-90), MoveBaseGo(1), Turn(90)],
             "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
@@ -1168,7 +1177,7 @@ if __name__ == "__main__":
         park_distance =       [0.5,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
 
         # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
-        checkpoint_sequence = ["point8", "point7", "point6", "point1", "point2","point3","point4","point5", "exit"]
+        checkpoint_sequence = ["point8", "point7", "point6", "look_for_box" ,"point1", "point2","point3","point4","point5", "exit"]
 
         with phase4_sm:
             i = 0
