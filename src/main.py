@@ -907,6 +907,7 @@ class ParkNext(State):
             if self.checkpoint == "look_for_box":
                 # save the box id
                 BOX_ID = msg.markers[0].id
+                Signal4(False,0).execute(None)
             self.marker = msg.markers[0]
             self.found_marker = True
 
@@ -1236,7 +1237,7 @@ if __name__ == "__main__":
             "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(0.65), Turn(-90)],
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
             "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.1)],
-            "point1": [Translate(0.1,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
+            "point1": [Translate(0.1,0.2), Turn(-90), MoveBaseGo(1.4), Turn(90)],
             "point2": [Turn(0), MoveBaseGo(0.7), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
