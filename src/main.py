@@ -1205,8 +1205,8 @@ if __name__ == "__main__":
     sm = StateMachine(outcomes=['success', 'failure'])
     with sm:
         StateMachine.add("Wait", WaitForButton(),
-            # transitions={'pressed': 'Phase1', 'exit': 'failure'})
-            transitions={'pressed': 'Phase4', 'exit': 'failure'})
+            transitions={'pressed': 'Phase1', 'exit': 'failure'})
+            # transitions={'pressed': 'Phase4', 'exit': 'failure'})
                          
 
         StateMachine.add("Ending", Signal4(True,1, True,1),
