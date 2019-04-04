@@ -1156,9 +1156,9 @@ if __name__ == "__main__":
 
         move_list = {
             "point8": [Turn(90), MoveBaseGo(1.1), Turn(0), Translate(0.2, -0.2)],
-            "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(1), Turn(-90)],
+            "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(0.65), Turn(-90)],
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
-            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.2)],
+            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.1)],
             "point1": [Translate(0.2,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
             "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
