@@ -391,7 +391,6 @@ class Turn(State):
         __, __, angles, position, __ = decompose_matrix(numpify(TB_POSE))
         self.tb_position = position[0:2]
         self.tb_rot = angles
-        print(angles)
 
     def execute(self, userdata):
         global turn_direction, TB_POSE
@@ -1005,7 +1004,7 @@ class ParkNext(State):
         global POSE
         Pose()
         __,__, angles, position, __ = decompose_matrix(numpify(tb_pose))
-        POSE[2] = angles[2] + math.pi/2
+        POSE[2] =angles_lib.normalize_angle( angles[2] )
 
 class Signal4(State):
     def __init__(self, led1, led1color, led2=False, led2color=None, playsound=True):
