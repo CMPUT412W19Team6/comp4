@@ -1073,14 +1073,14 @@ class PushBox(State):
             Turn(180).execute(None)
 
         # calculate moving distance
-        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.6
+        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8
         MoveBaseGo(dis).execute(None)
 
         # turn 90
         Turn(90).execute(None)
 
         # go forward 05
-        MoveBaseGo(0.5).execute(None)
+        MoveBaseGo(0.75).execute(None)
 
         # turn based on toRight
         if toRight:
@@ -1089,7 +1089,7 @@ class PushBox(State):
             Turn(0).execute(None)
 
         # Push
-        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.6 - 0.45
+        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - 0.45
         MoveBaseGo(dis).execute(None)
 
 class MoveBaseUsingOdom(State):
@@ -1236,8 +1236,8 @@ if __name__ == "__main__":
             "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(0.65), Turn(-90)],
             "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
             "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.7), Turn(0), Translate(0.1)],
-            "point1": [Translate(0.2,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
-            "point2": [Turn(0), MoveBaseGo(0.8), Turn(90)],
+            "point1": [Translate(0.1,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
+            "point2": [Turn(0), MoveBaseGo(0.7), Turn(90)],
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point5": [Turn(0), MoveBaseGo(0.8), Turn(90)],
