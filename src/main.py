@@ -44,6 +44,7 @@ IMAGE = None
 TB_POSE = None
 
 GREEN_FOUND = False
+PHASE4_SHAPE_FOUND = False
 
 # TODO: update POSE from callback
 
@@ -671,7 +672,7 @@ class CheckShape(State):
         self.shape = msg.data
 
     def execute(self, userdata):
-        global START, SHAPE_MATCHED, SHAPE
+        global START, SHAPE, PHASE4_SHAPE_FOUND
 
         self.start3_pub.publish(Bool(True))
         self.got_shape = False
@@ -681,7 +682,7 @@ class CheckShape(State):
             rospy.Rate(10).sleep()
 
         if self.shape == SHAPE:
-            SHAPE_MATCHED = True
+            PHASE4_SHAPE_FOUND = True
             return "matched"
         elif NUM_SHAPES >= 3:
             return "matched"
@@ -930,7 +931,7 @@ class ParkNext(State):
                 self.shape_start_pub.publish(Bool(False))
                 return "see_AR_goal"
             # elif found marker
-            elif self.found_shape:
+            elif (not PHASE4_SHAPE_FOUND) and self.found_shape:
                 self.shape_start_pub.publish(Bool(False))
                 return "see_shape"
             else:
