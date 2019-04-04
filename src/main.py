@@ -1099,7 +1099,7 @@ class PushBox(State):
             dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - PHASE4_DELTA_X
         else:
             dis = 0.8 - PHASE4_DELTA_X
-        MoveBaseGo(dis).execute(None)
+        Translate(dis,0.2).execute(None)
 
         # turn 90
         Turn(90).execute(None)
@@ -1108,7 +1108,7 @@ class PushBox(State):
         # if not toRight:
         #     MoveBaseGo(1.05).execute(None)
         # else:
-        MoveBaseGo(PHASE4_PUSH_Y + 0.3).execute(None)
+        Translate(PHASE4_PUSH_Y + 0.3,0.2).execute(None)
             
 
         # turn based on toRight
@@ -1274,16 +1274,16 @@ if __name__ == "__main__":
         phase4_sm = StateMachine(outcomes=['success', 'failure', 'exit'])
 
         move_list = {
-            "point8": [Turn(90), MoveBaseGo(1.1), Turn(0), Translate(0.2, -0.2)],
-            "point7": [Turn(90), MoveBaseGo(0.1), Turn(180), MoveBaseGo(0.65), Turn(-90)],
-            "point6": [Turn(180), MoveBaseGo(0.75), Turn(-90)],
-            "look_for_box": [Turn(180), MoveBaseGo(1.2), Turn(90), MoveBaseGo(0.6), Turn(0), Translate(0.1)],
-            "point1": [Translate(0.1,0.2), Turn(-90), MoveBaseGo(1.2), Turn(90)],
-            "point2": [Turn(0), MoveBaseGo(0.75), Turn(90)],
-            "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
-            "point4": [Turn(0), MoveBaseGo(0.85), Turn(90)],
-            "point5": [Turn(0), MoveBaseGo(0.8), Turn(90)],
-            "exit": [Turn(-90), MoveBaseGo(0.7), Turn(-90)]
+            "point8": [Turn(90), Translate(1.1, 0.2), Turn(0), Translate(0.2, -0.2)],
+            "point7": [Turn(90), Translate(0.1, 0.2), Turn(180), Translate(0.65, 0.2), Turn(-90)],
+            "point6": [Turn(180), Translate(0.75, 0.2), Turn(-90)],
+            "look_for_box": [Turn(180), Translate(1.2,0.2), Turn(90), Translate(0.6, 0.2), Turn(0), Translate(0.1)],
+            "point1": [Translate(0.1,0.2), Turn(-90), Translate(1.2, 0.2), Turn(90)],
+            "point2": [Turn(0), Translate(0.75, 0.2), Turn(90)],
+            "point3": [Turn(0), Translate(0.8, 0.2), Turn(90)],
+            "point4": [Turn(0), Translate(0.85, 0.2), Turn(90)],
+            "point5": [Turn(0), Translate(0.8, 0.2), Turn(90)],
+            "exit": [Turn(-90), Translate(0.7, 0.2), Turn(-90)]
 
             # "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
             # "point5": [MoveBaseGo(0.25), Turn(90), MoveBaseGo(0.2), Turn(90)],
@@ -1337,7 +1337,7 @@ if __name__ == "__main__":
                                 "see_shape": checkpoint_sequence[i] + "-" + "MatchShape", "see_AR_goal": checkpoint_sequence[i] + "-" + "SignalARGoal", "see_AR_box": checkpoint_sequence[i] + "-" + "SignalARBox", "find_nothing": checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup"
                             })
 
-                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkShape", MoveBaseGo(park_distance[i]), transitions={
+                            StateMachine.add(checkpoint_sequence[i] + "-" + "ParkShape", Translate(park_distance[i], 0.2), transitions={
                                 "success": checkpoint_sequence[i] + "-" + "SignalShape", "failure": "failure", "exit": "exit"
                             })
                             StateMachine.add(checkpoint_sequence[i] + "-" + "Moveback", Translate(park_distance[i],-0.2), transitions={
@@ -1383,7 +1383,7 @@ if __name__ == "__main__":
             StateMachine.add("Push_Box", PushBox() , transitions={"done":"Push_Box_Move-1"})
             StateMachine.add("Push_Box_Move-1",Translate(0.2) , transitions={"success": "Push_Box_Move-2", "failure": "failure", "exit": "exit"})
             StateMachine.add("Push_Box_Move-2", Turn(-90), transitions={ "success": "Push_Box_Move-3", "failure": "failure", "exit": "exit"})
-            StateMachine.add("Push_Box_Move-3", MoveBaseGo(0.5),transitions={"success": "Push_Box_Go_To_End", "failure": "failure", "exit": "exit"})
+            StateMachine.add("Push_Box_Move-3", Translate(0.5,0.2),transitions={"success": "Push_Box_Go_To_End", "failure": "failure", "exit": "exit"})
             StateMachine.add("Push_Box_Go_To_End", MoveBaseUsingOdom() ,transitions={"done": "exit-0"})
 
             StateMachine.add("ForwardUntilWhite", Translate(),
