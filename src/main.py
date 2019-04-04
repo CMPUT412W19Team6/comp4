@@ -55,6 +55,8 @@ PHASE4_BOX_X = 0
 PHASE4_GOAL_X = 0
 PHASE4_FACING = "" # either box or goal
 PHASE4_EXIT_GOAL = None
+PHASE4_DELTA_X = 0
+PHASE4_PUSH_Y = 0
 
 class WaitForButton(State):
     def __init__(self):
@@ -905,7 +907,7 @@ class ParkNext(State):
             self.marker_data_received = True
         self.count += 1
         if len(msg.markers) > 0 and msg.markers[0].id > 0 and msg.markers[0].id < 9 and not (self.checkpoint in ['point6','point7','point8','exit']):
-            print("found a marker????????????????", msg.markers[0].id)
+            # print("found a marker????????????????", msg.markers[0].id)
             if self.checkpoint == "look_for_box":
                 # save the box id
                 BOX_ID = msg.markers[0].id
@@ -919,7 +921,7 @@ class ParkNext(State):
     def execute(self, userdata):
         global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID, TB_POSE
         global PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND, PHASE4_BOX_CHECKPOINT, PHASE4_GOAL_CHECKPOINT, PHASE4_EXIT_GOAL
-        global PHASE4_BOX_X, PHASE4_GOAL_X, PHASE4_FACING ,PHASE4_PUSH_Y
+        global PHASE4_BOX_X, PHASE4_GOAL_X, PHASE4_FACING ,PHASE4_PUSH_Y, PHASE4_DELTA_X
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -935,7 +937,7 @@ class ParkNext(State):
             self.found_marker = False
 
             while self.count < 2:
-                print self.count
+                # print self.count
                 rospy.Rate(30).sleep()
                 
             # save point 1 as the exit point
@@ -965,6 +967,7 @@ class ParkNext(State):
                         PHASE4_BOX_CHECKPOINT = self.checkpoint
                         PHASE4_BOX_X = pose_transformed.point.x
                         PHASE4_PUSH_Y = abs(pose_transformed.point.y - TB_POSE.position.y)
+                        PHASE4_DELTA_X = abs(pose_transformed.point.x - TB_POSE.position.x)
                         PHASE4_FACING = "box"
                         return "see_AR_box"
                     else:
@@ -1070,7 +1073,7 @@ class PushBox(State):
 
     def push(self, toRight):
         global PHASE4_BOX_CHECKPOINT, PHASE4_BOX_X
-        global PHASE4_GOAL_CHECKPOINT, PHASE4_GOAL_X  , PHASE4_PUSH_Y
+        global PHASE4_GOAL_CHECKPOINT, PHASE4_GOAL_X  , PHASE4_PUSH_Y, PHASE4_DELTA_X
 
         # turn based on toRight
         if toRight:
@@ -1080,19 +1083,19 @@ class PushBox(State):
 
         # calculate moving distance
         if not toRight:
-            dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8
+            dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - PHASE4_DELTA_X
         else:
-            dis = 0.8
+            dis = 0.8 - PHASE4_DELTA_X
         MoveBaseGo(dis).execute(None)
 
         # turn 90
         Turn(90).execute(None)
 
         # go forward
-        if not toRight:
-            MoveBaseGo(1.05).execute(None)
-        else:
-            MoveBaseGo(PHASE4_PUSH_Y + 0.3).execute(None)
+        # if not toRight:
+        #     MoveBaseGo(1.05).execute(None)
+        # else:
+        MoveBaseGo(PHASE4_PUSH_Y + 0.4).execute(None)
             
 
         # turn based on toRight
@@ -1103,7 +1106,10 @@ class PushBox(State):
 
         # Push
         dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - 0.45
-        MoveBaseGo(dis).execute(None)
+        Translate(dis, 0.2).execute(None)
+
+        # Signal when done
+        Signal4(True, 1, True, 3)
 
 class MoveBaseUsingOdom(State):
     def __init__(self):
@@ -1171,8 +1177,8 @@ if __name__ == "__main__":
     sm = StateMachine(outcomes=['success', 'failure'])
     with sm:
         StateMachine.add("Wait", WaitForButton(),
-            # transitions={'pressed': 'Phase1', 'exit': 'failure'})
-            transitions={'pressed': 'Phase4', 'exit': 'failure'})
+            transitions={'pressed': 'Phase1', 'exit': 'failure'})
+            # transitions={'pressed': 'Phase4', 'exit': 'failure'})
                          
 
         StateMachine.add("Ending", FollowLine(),
@@ -1365,7 +1371,5 @@ if __name__ == "__main__":
 
         
 
-    sis = smach_ros.IntrospectionServer('server_name', sm, '/SM_ROOT')
-    sis.start()
     outcome = sm.execute()
-    sis.stop()
+
