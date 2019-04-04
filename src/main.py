@@ -1092,7 +1092,7 @@ class PushBox(State):
         if not toRight:
             MoveBaseGo(1.05).execute(None)
         else:
-            MoveBaseGo(PHASE4_PUSH_Y).execute(None)
+            MoveBaseGo(PHASE4_PUSH_Y + 0.3).execute(None)
             
 
         # turn based on toRight
