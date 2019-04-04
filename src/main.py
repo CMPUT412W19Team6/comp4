@@ -1119,7 +1119,7 @@ class PushBox(State):
 
         # Push
         dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8 - 0.4
-        Translate(dis, 0.2).execute(None)
+        MoveBaseGo(dis).execute(None)
 
         # Signal when done
         Signal4(True, 1, True, 3).execute(None)
