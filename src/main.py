@@ -51,6 +51,10 @@ PHASE4_BOX_FOUND = False
 PHASE4_GOAL_FOUND = False
 PHASE4_BOX_CHECKPOINT = ""
 PHASE4_GOAL_CHECKPOINT = ""
+PHASE4_BOX_X = 0
+PHASE4_GOAL_X = 0
+PHASE4_FACING = "" # either box or goal
+PHASE4_EXIT_GOAL = None
 
 class WaitForButton(State):
     def __init__(self):
@@ -911,7 +915,8 @@ class ParkNext(State):
 
     def execute(self, userdata):
         global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID, TB_POSE
-        global PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND, PHASE4_BOX_CHECKPOINT, PHASE4_GOAL_CHECKPOINT
+        global PHASE4_BOX_FOUND, PHASE4_GOAL_FOUND, PHASE4_BOX_CHECKPOINT, PHASE4_GOAL_CHECKPOINT, PHASE4_EXIT_GOAL
+        global PHASE4_BOX_X, PHASE4_GOAL_X, PHASE4_FACING
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -930,6 +935,18 @@ class ParkNext(State):
 
             rospy.sleep(rospy.Duration(2))
 
+            # save point 1 as the exit point
+            if self.checkpoint == "point1":
+                quaternion = quaternion_from_euler(0, 0, -math.pi/2)
+                PHASE4_EXIT_GOAL = MoveBaseGoal()
+                PHASE4_EXIT_GOAL.target_pose.header.frame_id = "odom"
+                PHASE4_EXIT_GOAL.target_pose.pose.position.x = TB_POSE.position.x
+                PHASE4_EXIT_GOAL.target_pose.pose.position.y = TB_POSE.position.y
+                PHASE4_EXIT_GOAL.target_pose.pose.orientation.x = quaternion[0]
+                PHASE4_EXIT_GOAL.target_pose.pose.orientation.y = quaternion[1]
+                PHASE4_EXIT_GOAL.target_pose.pose.orientation.z = quaternion[2]
+                PHASE4_EXIT_GOAL.target_pose.pose.orientation.w = quaternion[3]
+
             if self.found_marker and self.checkpoint != "look_for_box":
                 marker_sub.unregister()
                 # transform the marker pose
@@ -943,11 +960,15 @@ class ParkNext(State):
                         # found the box
                         PHASE4_BOX_FOUND = True
                         PHASE4_BOX_CHECKPOINT = self.checkpoint
+                        PHASE4_BOX_X = pose_transformed.point.x
+                        PHASE4_FACING = "box"
                         return "see_AR_box"
                     else:
                         # found the goal
                         PHASE4_GOAL_FOUND = True
                         PHASE4_GOAL_CHECKPOINT = self.checkpoint
+                        PHASE4_GOAL_X = pose_transformed.point.x
+                        PHASE4_FACING = "goal"
                         return "see_AR_goal"
                 else:
                     return "find_nothing"
@@ -1021,7 +1042,7 @@ class CheckCompletion(State):
                     return "next"
 
 
-class ParkAtExit(State):
+class PushBox(State):
     def __init__(self):
         State.__init__(self, outcomes=["done"])
 
@@ -1030,12 +1051,59 @@ class ParkAtExit(State):
             "move_base", MoveBaseAction)
 
     def execute(self, userdata):
-        result = None
-        while not rospy.is_shutdown() and START and result != 3:
-            result = self.move_base_client.send_goal_and_wait(self.end_goal)
+        global PHASE4_FACING
 
-            if result == 3:
-                return "done"
+        # determine if we should go to box's left or right
+        if PHASE4_FACING == "box":
+            goToRight = True
+        elif PHASE4_FACING == "goal":
+            goToRight = False
+        
+        self.push(goToRight)
+        return "done"
+
+    def push(self, toRight):
+        global PHASE4_BOX_CHECKPOINT, PHASE4_BOX_X
+        global PHASE4_GOAL_CHECKPOINT, PHASE4_GOAL_X  
+
+        # turn based on toRight
+        if toRight:
+            Turn(0).execute(None)
+        else:
+            Turn(180).execute(None)
+
+        # calculate moving distance
+        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.6
+        MoveBaseGo(dis).execute(None)
+
+        # turn 90
+        Turn(90).execute(None)
+
+        # go forward 05
+        MoveBaseGo(0.5).execute(None)
+
+        # turn based on toRight
+        if toRight:
+            Turn(180).execute(None)
+        else:
+            Turn(0).execute(None)
+
+        # Push
+        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.6 - 0.45
+        MoveBaseGo(dis).execute(None)
+
+class MoveBaseUsingOdom(State):
+    def __init__(self):
+        State.__init__(self, outcomes=["done"])
+
+        self.move_base_client = actionlib.SimpleActionClient(
+            "move_base", MoveBaseAction)
+
+    def execute(self, userdata):
+        global PHASE4_EXIT_GOAL
+        while not rospy.is_shutdown():
+            self.move_base_client.send_goal_and_wait(PHASE4_EXIT_GOAL)
+            return "done"
 
 def image_callback(msg):
     global BRIDGE, IMAGE
@@ -1173,7 +1241,7 @@ if __name__ == "__main__":
             "point3": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point4": [Turn(0), MoveBaseGo(0.8), Turn(90)],
             "point5": [Turn(0), MoveBaseGo(0.8), Turn(90)],
-            "exit": [Turn(-90), MoveBaseGo(1.2), Turn(-90)]
+            "exit": [Turn(-90), MoveBaseGo(0.7), Turn(-90)]
 
             # "point8": [Turn(90), MoveBaseGo(1.2), Turn(0)],
             # "point5": [MoveBaseGo(0.25), Turn(90), MoveBaseGo(0.2), Turn(90)],
@@ -1258,7 +1326,7 @@ if __name__ == "__main__":
                             })
 
                             StateMachine.add(checkpoint_sequence[i] + "-" + "CheckCompletionNoBackup", CheckCompletion(False), transitions={
-                                "completed": next_state_name, "not_completed": checkpoint_sequence[i] + "-" + "Moveback", "next": next_state_name
+                                "completed": "Push_Box", "not_completed": checkpoint_sequence[i] + "-" + "Moveback", "next": next_state_name
                             })
                         elif i == len(checkpoint_sequence) -1: # last move of last point
                             StateMachine.add(name, moves_to_point[j], transitions={
@@ -1270,6 +1338,12 @@ if __name__ == "__main__":
                         StateMachine.add(name, moves_to_point[j], transitions={
                             "success": next_state_name, "failure": "failure", "exit": "exit"
                         })
+            StateMachine.add("Push_Box", PushBox() , transitions={"done":"Push_Box_Move-1"})
+            StateMachine.add("Push_Box_Move-1",Translate(0.2) , transitions={"success": "Push_Box_Move-2", "failure": "failure", "exit": "exit"})
+            StateMachine.add("Push_Box_Move-2", Turn(-90), transitions={ "success": "Push_Box_Move-3", "failure": "failure", "exit": "exit"})
+            StateMachine.add("Push_Box_Move-3", MoveBaseGo(0.5),transitions={"success": "Push_Box_Go_To_End", "failure": "failure", "exit": "exit"})
+            StateMachine.add("Push_Box_Go_To_End", MoveBaseUsingOdom() ,transitions={"done": "exit-0"})
+
             StateMachine.add("ForwardUntilWhite", Translate(),
                                         transitions={"success": "success"}) 
 
