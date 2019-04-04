@@ -1078,7 +1078,10 @@ class PushBox(State):
             Turn(180).execute(None)
 
         # calculate moving distance
-        dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8
+        if not toRight:
+            dis = abs(PHASE4_BOX_X - PHASE4_GOAL_X) + 0.8
+        else:
+            dis = 0.8
         MoveBaseGo(dis).execute(None)
 
         # turn 90
