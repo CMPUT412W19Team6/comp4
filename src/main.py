@@ -897,13 +897,15 @@ class ParkNext(State):
     def reset(self):
         self.marker_data_received = False
         self.found_marker = False
+        self.count = 0
 
     def marker_callback(self, msg):
         global BOX_ID
         if not self.marker_data_received:
             self.marker_data_received = True
-
+        self.count += 1
         if len(msg.markers) > 0 and msg.markers[0].id > 0 and msg.markers[0].id < 9 and not (self.checkpoint in ['point6','point7','point8','exit']):
+            
             if self.checkpoint == "look_for_box":
                 # save the box id
                 BOX_ID = msg.markers[0].id
@@ -929,13 +931,11 @@ class ParkNext(State):
         if not rospy.is_shutdown() and START:
             while not self.marker_data_received:
                 continue
-            # result = self.move_base_client.send_goal_and_wait(
-            #     self.checkpoint_list[CURRENT_CHECKPOINT])
 
             self.found_marker = False
 
-            # rospy.sleep(rospy.Duration(2))
-
+            while self.count < 40:
+                continue
             # save point 1 as the exit point
             if self.checkpoint == "point1":
                 quaternion = quaternion_from_euler(0, 0, -math.pi/2)
@@ -949,9 +949,9 @@ class ParkNext(State):
                 PHASE4_EXIT_GOAL.target_pose.pose.orientation.w = quaternion[3]
 
             if self.found_marker and self.checkpoint != "look_for_box":
-                marker_sub.unregister()
                 # transform the marker pose
                 pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
+                marker_sub.unregister()
                 
                 self.shape_start_pub.publish(Bool(False))
 

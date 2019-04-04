@@ -25,8 +25,8 @@ def image_callback(msg):
         mask = cv2.inRange(hsv, lower_red, upper_red)
 
         h, w, d = image.shape
-        search_top = 1*h/6
-        search_bot = 3*h/4
+        search_top = 1*h/7
+        search_bot = 3*h/5
 
         mask[0:search_top, 0:w] = 0
         mask[search_bot:h, 0:w] = 0
