@@ -909,7 +909,7 @@ class ParkNext(State):
         self.found_shape = msg.data
 
     def execute(self, userdata):
-        global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID
+        global START, CURRENT_CHECKPOINT, UNKNOWN_CHECKPOINT, PHASE4_TASK_COMPLETED, BOX_ID, TB_POSE
 
         self.reset()
         marker_sub = rospy.Subscriber(
@@ -932,7 +932,6 @@ class ParkNext(State):
                 marker_sub.unregister()
                 # transform the marker pose
                 pose_transformed = transformPointFromMarker("ar_marker_"+str(self.marker.id))
-                print(pose_transformed)
                 
                 self.shape_start_pub.publish(Bool(False))
                 if BOX_ID == self.marker.id:
@@ -1174,7 +1173,7 @@ if __name__ == "__main__":
             # "exit":   [Turn(-90), MoveBaseGo(1.6), Turn(-90)],
         }
 
-        park_distance =       [0.5,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
+        park_distance =       [0.6,       0.5,       0.5,     0.5 ,       0.5,       0.5,   0.5,      0.5,      0.5]
 
         # checkpoint_sequence = ["point8", "point7", "point6", "point1", "point6", "point3", "point2", "point1", "exit"]
         checkpoint_sequence = ["point8", "point7", "point6", "look_for_box" ,"point1", "point2","point3","point4","point5", "exit"]
